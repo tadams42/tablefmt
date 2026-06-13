@@ -1,5 +1,7 @@
 ## unreleased
 
+## v0.3.0 (2026-06-13)
+
 - feat: added edit subcommand as VS Code API, removed prettify
 - feat: added prettify --line N for in-file table detection and reformat
 
