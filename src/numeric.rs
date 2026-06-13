@@ -33,9 +33,7 @@ fn analyze_column(data: &TableData, col_idx: usize) -> (bool, usize) {
 fn decimal_places(s: &str) -> usize {
     if let Some(dot_pos) = s.find('.') {
         let after_dot = &s[dot_pos + 1..];
-        after_dot
-            .find(['e', 'E'])
-            .unwrap_or(after_dot.len())
+        after_dot.find(['e', 'E']).unwrap_or(after_dot.len())
     } else {
         0
     }

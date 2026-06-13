@@ -1,12 +1,9 @@
-use tabled::{
-    builder::Builder,
-    settings::{object::Columns, Alignment, Style},
-};
+use tabled::builder::Builder;
+use tabled::settings::object::Columns;
+use tabled::settings::{Alignment, Style};
 
-use crate::{
-    cli::{ColorMode, OutputFormat},
-    model::TableData,
-};
+use crate::cli::{ColorMode, OutputFormat};
+use crate::model::TableData;
 
 // Must be defined before use (macro_rules! has textual scoping).
 macro_rules! tabled_style {
@@ -73,10 +70,7 @@ fn build_table(data: &TableData) -> tabled::Table {
 }
 
 fn finish_table(
-    mut table: tabled::Table,
-    data: &TableData,
-    color: &ColorMode,
-    is_tty: bool,
+    mut table: tabled::Table, data: &TableData, color: &ColorMode, is_tty: bool,
 ) -> String {
     for (i, meta) in data.column_meta.iter().enumerate() {
         if meta.is_numeric {
@@ -119,20 +113,20 @@ fn fmt_cell(cell: &str, width: usize, right_align: bool) -> String {
 // --- generic box renderer ---
 
 struct LineConfig {
-    left: &'static str,
+    left:  &'static str,
     right: &'static str,
     cross: &'static str,
-    fill: &'static str,
+    fill:  &'static str,
 }
 
 struct BoxConfig {
-    top: Option<LineConfig>,
+    top:        Option<LineConfig>,
     header_sep: LineConfig,
-    row_sep: Option<LineConfig>,
-    bottom: Option<LineConfig>,
-    cell_left: &'static str,
+    row_sep:    Option<LineConfig>,
+    bottom:     Option<LineConfig>,
+    cell_left:  &'static str,
     cell_right: &'static str,
-    cell_sep: &'static str,
+    cell_sep:   &'static str,
 }
 
 fn render_line(cfg: &LineConfig, widths: &[usize]) -> String {
@@ -152,10 +146,7 @@ fn render_line(cfg: &LineConfig, widths: &[usize]) -> String {
 }
 
 fn render_data_row(
-    cells: &[String],
-    widths: &[usize],
-    right_aligns: &[bool],
-    cfg: &BoxConfig,
+    cells: &[String], widths: &[usize], right_aligns: &[bool], cfg: &BoxConfig,
 ) -> String {
     let mut s = cfg.cell_left.to_string();
     for (i, (cell, &w)) in cells.iter().zip(widths.iter()).enumerate() {
@@ -174,11 +165,7 @@ fn render_data_row(
 fn render_box(data: &TableData, widths: &[usize], cfg: &BoxConfig) -> String {
     let n_cols = data.headers.len();
     let header_aligns = vec![false; n_cols];
-    let data_aligns: Vec<bool> = data
-        .column_meta
-        .iter()
-        .map(|m| m.is_numeric)
-        .collect();
+    let data_aligns: Vec<bool> = data.column_meta.iter().map(|m| m.is_numeric).collect();
 
     let mut out = String::new();
 
@@ -208,103 +195,103 @@ fn render_box(data: &TableData, widths: &[usize], cfg: &BoxConfig) -> String {
 // --- box style configurations ---
 
 const ORGTBL: BoxConfig = BoxConfig {
-    top: None,
+    top:        None,
     header_sep: LineConfig {
-        left: "|",
+        left:  "|",
         right: "|",
         cross: "+",
-        fill: "-",
+        fill:  "-",
     },
-    row_sep: None,
-    bottom: None,
-    cell_left: "|",
+    row_sep:    None,
+    bottom:     None,
+    cell_left:  "|",
     cell_right: "|",
-    cell_sep: "|",
+    cell_sep:   "|",
 };
 
 const TABLE_EL: BoxConfig = BoxConfig {
-    top: Some(LineConfig {
-        left: "+",
+    top:        Some(LineConfig {
+        left:  "+",
         right: "+",
         cross: "+",
-        fill: "-",
+        fill:  "-",
     }),
     header_sep: LineConfig {
-        left: "+",
+        left:  "+",
         right: "+",
         cross: "+",
-        fill: "=",
+        fill:  "=",
     },
-    row_sep: Some(LineConfig {
-        left: "+",
+    row_sep:    Some(LineConfig {
+        left:  "+",
         right: "+",
         cross: "+",
-        fill: "-",
+        fill:  "-",
     }),
-    bottom: Some(LineConfig {
-        left: "+",
+    bottom:     Some(LineConfig {
+        left:  "+",
         right: "+",
         cross: "+",
-        fill: "-",
+        fill:  "-",
     }),
-    cell_left: "|",
+    cell_left:  "|",
     cell_right: "|",
-    cell_sep: "|",
+    cell_sep:   "|",
 };
 
 const RST_GRID: BoxConfig = BoxConfig {
-    top: Some(LineConfig {
-        left: "+",
+    top:        Some(LineConfig {
+        left:  "+",
         right: "+",
         cross: "+",
-        fill: "-",
+        fill:  "-",
     }),
     header_sep: LineConfig {
-        left: "+",
+        left:  "+",
         right: "+",
         cross: "+",
-        fill: "=",
+        fill:  "=",
     },
-    row_sep: Some(LineConfig {
-        left: "+",
+    row_sep:    Some(LineConfig {
+        left:  "+",
         right: "+",
         cross: "+",
-        fill: "-",
+        fill:  "-",
     }),
-    bottom: Some(LineConfig {
-        left: "+",
+    bottom:     Some(LineConfig {
+        left:  "+",
         right: "+",
         cross: "+",
-        fill: "-",
+        fill:  "-",
     }),
-    cell_left: "|",
+    cell_left:  "|",
     cell_right: "|",
-    cell_sep: "|",
+    cell_sep:   "|",
 };
 
 const HEAVY_OUTLINE: BoxConfig = BoxConfig {
-    top: Some(LineConfig {
-        left: "┏",
+    top:        Some(LineConfig {
+        left:  "┏",
         right: "┓",
         cross: "┳",
-        fill: "━",
+        fill:  "━",
     }),
     header_sep: LineConfig {
-        left: "┣",
+        left:  "┣",
         right: "┫",
         cross: "╋",
-        fill: "━",
+        fill:  "━",
     },
-    row_sep: None,
-    bottom: Some(LineConfig {
-        left: "┗",
+    row_sep:    None,
+    bottom:     Some(LineConfig {
+        left:  "┗",
         right: "┛",
         cross: "┻",
-        fill: "━",
+        fill:  "━",
     }),
-    cell_left: "┃",
+    cell_left:  "┃",
     cell_right: "┃",
-    cell_sep: "┃",
+    cell_sep:   "┃",
 };
 
 // --- fully custom string renderers ---
@@ -380,10 +367,7 @@ fn render_asciidoc(data: &TableData, widths: &[usize]) -> String {
             format!("{a}{w}")
         })
         .collect();
-    out.push_str(&format!(
-        "[cols=\"{}\",options=\"header\"]\n",
-        cols_spec.join(",")
-    ));
+    out.push_str(&format!("[cols=\"{}\",options=\"header\"]\n", cols_spec.join(",")));
     out.push_str("|====\n");
 
     // Header row
@@ -430,11 +414,7 @@ mod tests {
     use super::*;
     use crate::model::{ColumnMeta, TableData};
 
-    fn make_data(
-        headers: &[&str],
-        rows: &[&[&str]],
-        numeric: &[bool],
-    ) -> TableData {
+    fn make_data(headers: &[&str], rows: &[&[&str]], numeric: &[bool]) -> TableData {
         let mut data = TableData::new(
             headers.iter().map(|s| s.to_string()).collect(),
             rows.iter()
@@ -442,7 +422,10 @@ mod tests {
                 .collect(),
         );
         for (i, &is_num) in numeric.iter().enumerate() {
-            data.column_meta[i] = ColumnMeta { is_numeric: is_num, max_decimal_places: 0 };
+            data.column_meta[i] = ColumnMeta {
+                is_numeric:         is_num,
+                max_decimal_places: 0,
+            };
         }
         data
     }
@@ -497,11 +480,7 @@ mod tests {
 
     #[test]
     fn render_asciidoc_no_blank_lines_between_rows() {
-        let data = make_data(
-            &["a", "b"],
-            &[&["1", "2"], &["3", "4"]],
-            &[true, true],
-        );
+        let data = make_data(&["a", "b"], &[&["1", "2"], &["3", "4"]], &[true, true]);
         let widths = col_widths(&data);
         let out = render_asciidoc(&data, &widths);
         // No consecutive newlines inside the |==== block

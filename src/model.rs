@@ -1,13 +1,13 @@
 #[derive(Debug, Default)]
 pub struct ColumnMeta {
-    pub is_numeric: bool,
+    pub is_numeric:         bool,
     pub max_decimal_places: usize,
 }
 
 #[derive(Debug)]
 pub struct TableData {
-    pub headers: Vec<String>,
-    pub rows: Vec<Vec<String>>,
+    pub headers:     Vec<String>,
+    pub rows:        Vec<Vec<String>>,
     pub column_meta: Vec<ColumnMeta>,
 }
 
@@ -21,9 +21,7 @@ impl TableData {
         }
     }
 
-    pub fn truncate_rows(&mut self, max_rows: usize) {
-        self.rows.truncate(max_rows);
-    }
+    pub fn truncate_rows(&mut self, max_rows: usize) { self.rows.truncate(max_rows); }
 }
 
 #[cfg(test)]
@@ -46,10 +44,7 @@ mod tests {
 
     #[test]
     fn table_data_truncate_no_op_when_fewer_rows() {
-        let mut data = TableData::new(
-            vec!["a".to_string()],
-            vec![vec!["1".to_string()]],
-        );
+        let mut data = TableData::new(vec!["a".to_string()], vec![vec!["1".to_string()]]);
         data.truncate_rows(10);
         assert_eq!(data.rows.len(), 1);
     }

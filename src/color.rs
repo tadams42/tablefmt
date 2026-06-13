@@ -1,10 +1,6 @@
-use tabled::{
-    settings::{
-        object::{Columns, Rows},
-        Color,
-    },
-    Table,
-};
+use tabled::Table;
+use tabled::settings::Color;
+use tabled::settings::object::{Columns, Rows};
 
 use crate::cli::ColorMode;
 
@@ -31,7 +27,11 @@ pub fn apply(table: &mut Table, mode: &ColorMode, n_cols: usize, n_data_rows: us
         ColorMode::Rows => {
             for i in 0..n_data_rows {
                 // Row 0 is the header; data rows start at index 1
-                let color = if i % 2 == 0 { ROW_COLOR_A.clone() } else { ROW_COLOR_B.clone() };
+                let color = if i % 2 == 0 {
+                    ROW_COLOR_A.clone()
+                } else {
+                    ROW_COLOR_B.clone()
+                };
                 table.modify(Rows::one(i + 1), color);
             }
         }

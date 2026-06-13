@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::Read;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 
 use crate::model::TableData;
 
@@ -29,8 +29,7 @@ pub fn parse_csv<R: Read>(reader: R, delimiter: u8) -> anyhow::Result<TableData>
 }
 
 pub fn parse_json(input: &str) -> anyhow::Result<TableData> {
-    let value: serde_json::Value =
-        serde_json::from_str(input).context("failed to parse JSON")?;
+    let value: serde_json::Value = serde_json::from_str(input).context("failed to parse JSON")?;
 
     let arr = match &value {
         serde_json::Value::Array(a) => a,
@@ -64,11 +63,7 @@ pub fn parse_json(input: &str) -> anyhow::Result<TableData> {
             let obj = item.as_object().unwrap();
             headers
                 .iter()
-                .map(|h| {
-                    obj.get(h)
-                        .map(json_value_to_string)
-                        .unwrap_or_default()
-                })
+                .map(|h| obj.get(h).map(json_value_to_string).unwrap_or_default())
                 .collect()
         })
         .collect();
@@ -89,8 +84,7 @@ fn json_value_to_string(v: &serde_json::Value) -> String {
 pub fn parse_yaml(input: &str) -> anyhow::Result<TableData> {
     use saphyr::{LoadableYamlNode, Yaml};
 
-    let docs = Yaml::load_from_str(input)
-        .map_err(|e| anyhow!("YAML parse error: {e}"))?;
+    let docs = Yaml::load_from_str(input).map_err(|e| anyhow!("YAML parse error: {e}"))?;
 
     let doc = docs
         .into_iter()
@@ -148,11 +142,13 @@ pub fn parse_yaml(input: &str) -> anyhow::Result<TableData> {
 fn yaml_key_to_string(yaml: &saphyr::Yaml) -> anyhow::Result<String> {
     use saphyr::Yaml;
     match yaml {
-        Yaml::Value(scalar) => match scalar {
-            saphyr::Scalar::String(s) => Ok(s.to_string()),
-            saphyr::Scalar::Integer(n) => Ok(n.to_string()),
-            _ => Err(anyhow!("YAML mapping key must be a string")),
-        },
+        Yaml::Value(scalar) => {
+            match scalar {
+                saphyr::Scalar::String(s) => Ok(s.to_string()),
+                saphyr::Scalar::Integer(n) => Ok(n.to_string()),
+                _ => Err(anyhow!("YAML mapping key must be a string")),
+            }
+        }
         _ => Err(anyhow!("YAML mapping key must be a string")),
     }
 }
@@ -160,13 +156,15 @@ fn yaml_key_to_string(yaml: &saphyr::Yaml) -> anyhow::Result<String> {
 fn yaml_value_to_string(yaml: &saphyr::Yaml) -> String {
     use saphyr::Yaml;
     match yaml {
-        Yaml::Value(scalar) => match scalar {
-            saphyr::Scalar::String(s) => s.to_string(),
-            saphyr::Scalar::Integer(n) => n.to_string(),
-            saphyr::Scalar::FloatingPoint(f) => f.to_string(),
-            saphyr::Scalar::Boolean(b) => b.to_string(),
-            saphyr::Scalar::Null => String::new(),
-        },
+        Yaml::Value(scalar) => {
+            match scalar {
+                saphyr::Scalar::String(s) => s.to_string(),
+                saphyr::Scalar::Integer(n) => n.to_string(),
+                saphyr::Scalar::FloatingPoint(f) => f.to_string(),
+                saphyr::Scalar::Boolean(b) => b.to_string(),
+                saphyr::Scalar::Null => String::new(),
+            }
+        }
         _ => String::new(),
     }
 }
@@ -232,11 +230,7 @@ fn parse_toml_array(arr: &[toml::Value]) -> anyhow::Result<TableData> {
             let t = item.as_table().unwrap();
             headers
                 .iter()
-                .map(|h| {
-                    t.get(h)
-                        .map(toml_value_to_string)
-                        .unwrap_or_default()
-                })
+                .map(|h| t.get(h).map(toml_value_to_string).unwrap_or_default())
                 .collect()
         })
         .collect();
@@ -259,9 +253,7 @@ fn toml_value_to_string(v: &toml::Value) -> String {
 mod tests {
     use super::*;
 
-    fn csv(src: &str) -> TableData {
-        parse_csv(src.as_bytes(), b',').unwrap()
-    }
+    fn csv(src: &str) -> TableData { parse_csv(src.as_bytes(), b',').unwrap() }
 
     #[test]
     fn parse_csv_basic_two_columns() {
@@ -343,7 +335,8 @@ mod tests {
 
     #[test]
     fn parse_toml_array_of_tables() {
-        let input = "[[items]]\nname = \"spam\"\nqty = 42\n\n[[items]]\nname = \"eggs\"\nqty = 451\n";
+        let input =
+            "[[items]]\nname = \"spam\"\nqty = 42\n\n[[items]]\nname = \"eggs\"\nqty = 451\n";
         let data = parse_toml(input).unwrap();
         assert_eq!(data.headers, ["name", "qty"]);
         assert_eq!(data.rows[0], ["spam", "42"]);
