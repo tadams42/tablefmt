@@ -25,15 +25,28 @@ fn update_changelog() {
         .output()
         .expect("failed to run git describe");
 
-    if !tag_output.status.success() {
-        eprintln!("git describe failed — no tags found?");
-        std::process::exit(1);
-    }
-
-    let tag = String::from_utf8(tag_output.stdout)
-        .expect("git describe output is not UTF-8")
-        .trim()
-        .to_string();
+    // When no tags exist yet, fall back to the very first commit so that all
+    // commits since the repo was created are included in the changelog.
+    let tag = if tag_output.status.success() {
+        String::from_utf8(tag_output.stdout)
+            .expect("git describe output is not UTF-8")
+            .trim()
+            .to_string()
+    } else {
+        let first = std::process::Command::new("git")
+            .args(["rev-list", "--max-parents=0", "HEAD"])
+            .current_dir(project_root())
+            .output()
+            .expect("failed to run git rev-list");
+        if !first.status.success() {
+            eprintln!("git rev-list failed — empty repository?");
+            std::process::exit(1);
+        }
+        String::from_utf8(first.stdout)
+            .expect("git rev-list output is not UTF-8")
+            .trim()
+            .to_string()
+    };
 
     let log_output = std::process::Command::new("git")
         .args(["log", &format!("{}..HEAD", tag), "--format=%s"])
