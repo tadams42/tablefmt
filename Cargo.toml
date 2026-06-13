@@ -1,0 +1,31 @@
+[workspace]
+members = [".", "xtask"]
+
+[workspace.metadata.release]
+publish = false
+push = false
+shared-version = "tablefmt"
+tag-name = "v{{version}}"
+# pre-release-commit-message = "build: Bumped version {{prev_version}} -> v{{version}}"
+pre-release-commit-message = "build: bumped version to v{{version}}"
+tag-message = ""
+
+[[workspace.metadata.release.pre-release-replacements]]
+file = "CHANGELOG.md"
+search = "## unreleased"
+replace = "## unreleased\n\n## v{{version}} ({{date}})"
+exactly = 1
+
+[package]
+name = "tablefmt"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[[bin]]
+name = "tablefmt"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+clap_complete = "4.6.5"

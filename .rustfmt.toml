@@ -1,0 +1,78 @@
+unstable_features = true
+
+style_edition = "2024"
+
+# Reorder impl items. type and const are put first, then macros and methods.
+# Default value: false
+# Stable: No
+imports_granularity = "Module"
+
+# Reorder impl items. type and const are put first, then macros and methods.
+# Default value: false
+# Stable: No
+reorder_impl_items = false
+
+# Break comments to fit on the line
+# Default value: false
+# Stable: No
+wrap_comments = true
+
+# Maximum length of comments. No effect unless `wrap_comments = true`.
+# Default value: 80
+# Stable: No
+comment_width = 100
+
+# The maximum length of enum variant having discriminant, that gets vertically aligned with others.
+# Variants without discriminants would be ignored for the purpose of alignment.
+#
+# Note that this is not how much whitespace is inserted, but instead the longest variant name that
+# doesn't get ignored when aligning.
+#
+# Default value : 0
+# Possible values: any positive integer
+# Stable: No
+enum_discrim_align_threshold = 30
+
+# Force multiline closure and match arm bodies to be wrapped in a block
+# Default value: false
+# Stable: No
+force_multiline_blocks = true
+
+# Format code snippet included in doc comments.
+# Default value: false
+# Stable: No
+format_code_in_doc_comments = true
+
+# Convert /* */ comments to // comments where possible
+# Default value: false
+# Stable: No
+normalize_comments = true
+
+# The maximum diff of width between struct fields to be aligned with each other.
+# Default value : 0
+# Possible values: any non-negative integer
+# Stable: No
+struct_field_align_threshold = 50
+
+# Maximum width of the args of a function call before falling back to vertical formatting.
+# Default value: 60
+# Possible values: any positive integer that is less than or equal to the value specified for max_width
+# Stable: Yes
+fn_call_width = 70
+
+# Control the layout of parameters in function signatures.
+# Default value: "Tall"
+# Possible values: "Compressed", "Tall", "Vertical"
+# Stable: Yes
+fn_params_layout = "Compressed"
+
+# Put single-expression functions on a single line
+# Default value: false
+# Possible values: true, false
+# Stable: No
+fn_single_line = true
+
+# Use field initialize shorthand if possible.
+# Default value: false
+# Stable: Yes
+use_field_init_shorthand = true
