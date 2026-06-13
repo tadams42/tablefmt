@@ -46,11 +46,11 @@ cargo install --git https://github.com/tadams42/tablefmt
 tablefmt format -i data.csv
 
 # Explicit input format; read from stdin
-cat data.json | tablefmt format -s json
+cat data.json | tablefmt format -f json
 
 # Different output styles
-tablefmt format -i data.csv -S psql
-tablefmt format -i data.yaml -S rst
+tablefmt format -i data.csv -s psql
+tablefmt format -i data.yaml -s rst
 
 # Colorize alternating columns; limit to 50 rows; 2 decimal places
 tablefmt format -i data.csv --color columns --max-rows 50 -p 2
@@ -63,10 +63,10 @@ tablefmt format -i data.csv -o table.md
 
 ```sh
 # Re-align a hand-edited Markdown table
-tablefmt prettify -S github -i docs/table.md
+tablefmt prettify -s github -i docs/table.md
 
 # Pipe from stdin
-cat table.md | tablefmt prettify -S github
+cat table.md | tablefmt prettify -s github
 ```
 
 ### `completions` — generate shell completions

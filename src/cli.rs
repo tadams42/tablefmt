@@ -47,15 +47,15 @@ pub struct FormatArgs {
     pub output: Option<PathBuf>,
 
     /// Input format
-    #[arg(short = 's', long, value_enum)]
-    pub source: Option<SourceFormat>,
+    #[arg(short = 'f', long = "format", value_enum)]
+    pub format: Option<SourceFormat>,
 
     /// Delimiter override for CSV/TSV/PSV (must be ASCII)
     #[arg(short = 'd', long)]
     pub delimiter: Option<char>,
 
     /// Output table style
-    #[arg(short = 'S', long = "style", value_enum, default_value = "github")]
+    #[arg(short = 's', long = "style", value_enum, default_value = "github")]
     pub style: OutputFormat,
 
     /// Column/row coloring (columns/c, rows/r, none)
@@ -82,7 +82,7 @@ pub struct PrettifyArgs {
     pub output: Option<PathBuf>,
 
     /// Table style — selects both the input parser format and the output format (required)
-    #[arg(short = 'S', long = "style", value_enum, required = true)]
+    #[arg(short = 's', long = "style", value_enum, required = true)]
     pub style: OutputFormat,
 
     /// Normalize numeric columns to N decimal places

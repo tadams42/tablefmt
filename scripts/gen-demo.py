@@ -108,14 +108,14 @@ def main():
 
     w.section_header("Same data, PostgreSQL style")
     w.run(
-        "tablefmt format -i docs/demo/data/sales.csv -S psql",
-        [BINARY, "format", "-i", "docs/demo/data/sales.csv", "-S", "psql"],
+        "tablefmt format -i docs/demo/data/sales.csv -s psql",
+        [BINARY, "format", "-i", "docs/demo/data/sales.csv", "-s", "psql"],
     )
 
     w.section_header("Unicode box-drawing style")
     w.run(
-        "tablefmt format -i docs/demo/data/sales.csv -S modern",
-        [BINARY, "format", "-i", "docs/demo/data/sales.csv", "-S", "modern"],
+        "tablefmt format -i docs/demo/data/sales.csv -s modern",
+        [BINARY, "format", "-i", "docs/demo/data/sales.csv", "-s", "modern"],
     )
 
     w.section_header("JSON input")
@@ -126,14 +126,14 @@ def main():
 
     w.section_header("YAML input → reStructuredText table")
     w.run(
-        "tablefmt format -i docs/demo/data/metrics.yaml -S rst",
-        [BINARY, "format", "-i", "docs/demo/data/metrics.yaml", "-S", "rst"],
+        "tablefmt format -i docs/demo/data/metrics.yaml -s rst",
+        [BINARY, "format", "-i", "docs/demo/data/metrics.yaml", "-s", "rst"],
     )
 
     w.section_header("Re-align an existing Markdown table with prettify")
     w.run(
-        "tablefmt prettify -S github -i docs/demo/data/table.md",
-        [BINARY, "prettify", "-S", "github", "-i", "docs/demo/data/table.md"],
+        "tablefmt prettify -s github -i docs/demo/data/table.md",
+        [BINARY, "prettify", "-s", "github", "-i", "docs/demo/data/table.md"],
     )
 
     w.pause(1.0)

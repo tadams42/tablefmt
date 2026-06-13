@@ -169,7 +169,7 @@ fn run_prettify(args: &cli::PrettifyArgs) -> anyhow::Result<()> {
 }
 
 fn resolve_source(args: &cli::FormatArgs) -> anyhow::Result<SourceFormat> {
-    if let Some(ref s) = args.source {
+    if let Some(ref s) = args.format {
         return Ok(s.clone());
     }
 
@@ -188,17 +188,17 @@ fn resolve_source(args: &cli::FormatArgs) -> anyhow::Result<SourceFormat> {
                 return Ok(s);
             }
             return Err(anyhow!(
-                "cannot infer format from extension '.{ext}'; use --source to specify it"
+                "cannot infer format from extension '.{ext}'; use --format to specify it"
             ));
         }
         return Err(anyhow!(
-            "input file has no extension; use --source to specify the format"
+            "input file has no extension; use --format to specify the format"
         ));
     }
 
     if args.delimiter.is_none() {
         return Err(anyhow!(
-            "reading from stdin requires --source or --delimiter to identify the format"
+            "reading from stdin requires --format or --delimiter to identify the format"
         ));
     }
 
