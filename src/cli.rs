@@ -6,7 +6,11 @@ use clap_complete::Shell;
 
 fn styles() -> Styles {
     Styles::styled()
-        .header(AnsiColor::Green.on_default().effects(Effects::BOLD | Effects::UNDERLINE))
+        .header(
+            AnsiColor::Green
+                .on_default()
+                .effects(Effects::BOLD | Effects::UNDERLINE),
+        )
         .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
         .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
         .placeholder(AnsiColor::Cyan.on_default())
@@ -15,10 +19,13 @@ fn styles() -> Styles {
         .invalid(AnsiColor::Yellow.on_default().effects(Effects::BOLD))
 }
 
-pub fn parse_args() -> Args {
+pub fn parse_args() -> (Args, bool) {
     let cmd = Args::command().styles(styles());
     let matches = cmd.get_matches();
-    Args::from_arg_matches(&matches).unwrap_or_else(|e| e.exit())
+    let style_explicit =
+        matches.value_source("style") == Some(clap::parser::ValueSource::CommandLine);
+    let args = Args::from_arg_matches(&matches).unwrap_or_else(|e| e.exit());
+    (args, style_explicit)
 }
 
 #[derive(Parser, Debug)]
@@ -55,6 +62,10 @@ pub struct Args {
     /// Normalize numeric columns to N decimal places
     #[arg(short = 'p', long)]
     pub decimal_places: Option<usize>,
+
+    /// Re-format an existing table; --style selects the input format (required with this flag)
+    #[arg(long, conflicts_with_all = ["source", "delimiter"])]
+    pub prettify: bool,
 
     #[command(subcommand)]
     pub command: Option<Commands>,
@@ -119,9 +130,10 @@ pub enum MaxRows {
 pub fn parse_max_rows(s: &str) -> Result<MaxRows, String> {
     match s {
         "0" | "null" => Ok(MaxRows::All),
-        s => s
-            .parse::<usize>()
-            .map(MaxRows::Limit)
-            .map_err(|_| format!("invalid value '{s}': expected a positive integer, 0, or null")),
+        s => {
+            s.parse::<usize>().map(MaxRows::Limit).map_err(|_| {
+                format!("invalid value '{s}': expected a positive integer, 0, or null")
+            })
+        }
     }
 }
