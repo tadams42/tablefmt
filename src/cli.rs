@@ -131,7 +131,7 @@ pub enum OutputFormat {
     Modern,
     Sharp,
     Extended,
-    #[value(name = "heavy_outline")]
+    #[value(name = "heavy-outline")]
     HeavyOutline,
 }
 

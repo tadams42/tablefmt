@@ -248,7 +248,7 @@ tablefmt completions fish > ~/.config/fish/completions/tablefmt.fish
 ╚═══════╩══════════╩═══════╝
 ```
 
-### `heavy_outline` — Unicode box-drawing (heavy outer border)
+### `heavy-outline` — Unicode box-drawing (heavy outer border)
 
 ```
 ┏━━━━━━━┳━━━━━━━━━━┳━━━━━━━┓
