@@ -58,7 +58,7 @@ pub struct FormatArgs {
     #[arg(short = 's', long = "style", value_enum, default_value = "github")]
     pub style: OutputFormat,
 
-    /// Column/row coloring (columns/c, rows/r, none)
+    /// Column/row coloring (columns/c, rows/r, none). Not all styles support color; unsupported styles silently ignore this option.
     #[arg(long, value_enum, default_value = "none")]
     pub color: ColorMode,
 

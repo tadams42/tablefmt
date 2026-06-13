@@ -1,5 +1,6 @@
 use tabled::builder::Builder;
 use tabled::settings::object::Columns;
+use tabled::settings::style::HorizontalLine;
 use tabled::settings::{Alignment, Style};
 
 use crate::cli::{ColorMode, OutputFormat};
@@ -39,22 +40,78 @@ pub fn render(data: &TableData, fmt: &OutputFormat, color: &ColorMode, is_tty: b
             let widths = col_widths(data);
             render_asciidoc(data, &widths)
         }
-        OutputFormat::Orgtbl => {
-            let widths = col_widths(data);
-            render_box(data, &widths, &ORGTBL)
-        }
-        OutputFormat::TableEl => {
-            let widths = col_widths(data);
-            render_box(data, &widths, &TABLE_EL)
-        }
-        OutputFormat::RstGrid => {
-            let widths = col_widths(data);
-            render_box(data, &widths, &RST_GRID)
-        }
-        OutputFormat::HeavyOutline => {
-            let widths = col_widths(data);
-            render_box(data, &widths, &HEAVY_OUTLINE)
-        }
+        OutputFormat::Orgtbl => tabled_style!(
+            data,
+            Style::empty()
+                .left('|')
+                .right('|')
+                .vertical('|')
+                .horizontals([(1, HorizontalLine::full('-', '+', '|', '|'))]),
+            color,
+            is_tty
+        ),
+        OutputFormat::TableEl => tabled_style!(
+            data,
+            Style::empty()
+                .top('-')
+                .bottom('-')
+                .left('|')
+                .right('|')
+                .vertical('|')
+                .horizontal('-')
+                .corner_top_left('+')
+                .corner_top_right('+')
+                .corner_bottom_left('+')
+                .corner_bottom_right('+')
+                .intersection_top('+')
+                .intersection_bottom('+')
+                .intersection_left('+')
+                .intersection_right('+')
+                .intersection('+')
+                .horizontals([(1, HorizontalLine::full('=', '+', '+', '+'))]),
+            color,
+            is_tty
+        ),
+        OutputFormat::RstGrid => tabled_style!(
+            data,
+            Style::empty()
+                .top('-')
+                .bottom('-')
+                .left('|')
+                .right('|')
+                .vertical('|')
+                .horizontal('-')
+                .corner_top_left('+')
+                .corner_top_right('+')
+                .corner_bottom_left('+')
+                .corner_bottom_right('+')
+                .intersection_top('+')
+                .intersection_bottom('+')
+                .intersection_left('+')
+                .intersection_right('+')
+                .intersection('+')
+                .horizontals([(1, HorizontalLine::full('=', '+', '+', '+'))]),
+            color,
+            is_tty
+        ),
+        OutputFormat::HeavyOutline => tabled_style!(
+            data,
+            Style::empty()
+                .top('━')
+                .bottom('━')
+                .left('┃')
+                .right('┃')
+                .vertical('┃')
+                .corner_top_left('┏')
+                .corner_top_right('┓')
+                .corner_bottom_left('┗')
+                .corner_bottom_right('┛')
+                .intersection_top('┳')
+                .intersection_bottom('┻')
+                .horizontals([(1, HorizontalLine::full('━', '╋', '┣', '┫'))]),
+            color,
+            is_tty
+        ),
     }
 }
 
@@ -83,7 +140,7 @@ fn finish_table(
     table.to_string()
 }
 
-// --- column-width helper ---
+// --- custom string renderers helper ---
 
 pub fn col_widths(data: &TableData) -> Vec<usize> {
     data.headers
@@ -109,190 +166,6 @@ fn fmt_cell(cell: &str, width: usize, right_align: bool) -> String {
         format!("{cell:<width$}")
     }
 }
-
-// --- generic box renderer ---
-
-struct LineConfig {
-    left:  &'static str,
-    right: &'static str,
-    cross: &'static str,
-    fill:  &'static str,
-}
-
-struct BoxConfig {
-    top:        Option<LineConfig>,
-    header_sep: LineConfig,
-    row_sep:    Option<LineConfig>,
-    bottom:     Option<LineConfig>,
-    cell_left:  &'static str,
-    cell_right: &'static str,
-    cell_sep:   &'static str,
-}
-
-fn render_line(cfg: &LineConfig, widths: &[usize]) -> String {
-    let mut s = cfg.left.to_string();
-    for (i, &w) in widths.iter().enumerate() {
-        // fill = w + 2 (for single-space padding on each side)
-        for _ in 0..(w + 2) {
-            s.push_str(cfg.fill);
-        }
-        if i + 1 < widths.len() {
-            s.push_str(cfg.cross);
-        }
-    }
-    s.push_str(cfg.right);
-    s.push('\n');
-    s
-}
-
-fn render_data_row(
-    cells: &[String], widths: &[usize], right_aligns: &[bool], cfg: &BoxConfig,
-) -> String {
-    let mut s = cfg.cell_left.to_string();
-    for (i, (cell, &w)) in cells.iter().zip(widths.iter()).enumerate() {
-        s.push(' ');
-        s.push_str(&fmt_cell(cell, w, right_aligns[i]));
-        s.push(' ');
-        if i + 1 < cells.len() {
-            s.push_str(cfg.cell_sep);
-        }
-    }
-    s.push_str(cfg.cell_right);
-    s.push('\n');
-    s
-}
-
-fn render_box(data: &TableData, widths: &[usize], cfg: &BoxConfig) -> String {
-    let n_cols = data.headers.len();
-    let header_aligns = vec![false; n_cols];
-    let data_aligns: Vec<bool> = data.column_meta.iter().map(|m| m.is_numeric).collect();
-
-    let mut out = String::new();
-
-    if let Some(ref top) = cfg.top {
-        out.push_str(&render_line(top, widths));
-    }
-
-    out.push_str(&render_data_row(&data.headers, widths, &header_aligns, cfg));
-    out.push_str(&render_line(&cfg.header_sep, widths));
-
-    for (idx, row) in data.rows.iter().enumerate() {
-        out.push_str(&render_data_row(row, widths, &data_aligns, cfg));
-        if let Some(ref sep) = cfg.row_sep {
-            if idx + 1 < data.rows.len() {
-                out.push_str(&render_line(sep, widths));
-            }
-        }
-    }
-
-    if let Some(ref bottom) = cfg.bottom {
-        out.push_str(&render_line(bottom, widths));
-    }
-
-    out
-}
-
-// --- box style configurations ---
-
-const ORGTBL: BoxConfig = BoxConfig {
-    top:        None,
-    header_sep: LineConfig {
-        left:  "|",
-        right: "|",
-        cross: "+",
-        fill:  "-",
-    },
-    row_sep:    None,
-    bottom:     None,
-    cell_left:  "|",
-    cell_right: "|",
-    cell_sep:   "|",
-};
-
-const TABLE_EL: BoxConfig = BoxConfig {
-    top:        Some(LineConfig {
-        left:  "+",
-        right: "+",
-        cross: "+",
-        fill:  "-",
-    }),
-    header_sep: LineConfig {
-        left:  "+",
-        right: "+",
-        cross: "+",
-        fill:  "=",
-    },
-    row_sep:    Some(LineConfig {
-        left:  "+",
-        right: "+",
-        cross: "+",
-        fill:  "-",
-    }),
-    bottom:     Some(LineConfig {
-        left:  "+",
-        right: "+",
-        cross: "+",
-        fill:  "-",
-    }),
-    cell_left:  "|",
-    cell_right: "|",
-    cell_sep:   "|",
-};
-
-const RST_GRID: BoxConfig = BoxConfig {
-    top:        Some(LineConfig {
-        left:  "+",
-        right: "+",
-        cross: "+",
-        fill:  "-",
-    }),
-    header_sep: LineConfig {
-        left:  "+",
-        right: "+",
-        cross: "+",
-        fill:  "=",
-    },
-    row_sep:    Some(LineConfig {
-        left:  "+",
-        right: "+",
-        cross: "+",
-        fill:  "-",
-    }),
-    bottom:     Some(LineConfig {
-        left:  "+",
-        right: "+",
-        cross: "+",
-        fill:  "-",
-    }),
-    cell_left:  "|",
-    cell_right: "|",
-    cell_sep:   "|",
-};
-
-const HEAVY_OUTLINE: BoxConfig = BoxConfig {
-    top:        Some(LineConfig {
-        left:  "┏",
-        right: "┓",
-        cross: "┳",
-        fill:  "━",
-    }),
-    header_sep: LineConfig {
-        left:  "┣",
-        right: "┫",
-        cross: "╋",
-        fill:  "━",
-    },
-    row_sep:    None,
-    bottom:     Some(LineConfig {
-        left:  "┗",
-        right: "┛",
-        cross: "┻",
-        fill:  "━",
-    }),
-    cell_left:  "┃",
-    cell_right: "┃",
-    cell_sep:   "┃",
-};
 
 // --- fully custom string renderers ---
 

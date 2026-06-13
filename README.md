@@ -9,6 +9,8 @@
 
 ![demo](demo.gif)
 
+> Built with [tabled](https://github.com/zhiburt/tabled)
+
 ## Features
 
 - **Reads CSV, TSV, PSV, JSON, YAML, TOML** — format auto-detected from the file extension
