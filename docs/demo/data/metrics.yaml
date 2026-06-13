@@ -1,0 +1,16 @@
+- service: api-gateway
+  latency_ms: 45.2
+  requests: 12847
+  errors: 3
+- service: auth-service
+  latency_ms: 12.8
+  requests: 8421
+  errors: 0
+- service: data-pipeline
+  latency_ms: 234.6
+  requests: 2103
+  errors: 7
+- service: cache
+  latency_ms: 1.4
+  requests: 31205
+  errors: 0

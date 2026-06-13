@@ -59,6 +59,20 @@ If `CHANGELOG.md` does not contain a `## vX.Y.Z (...)` section matching the push
 the `GitHub` release is created with an empty body. If you'd followed above instructions
 correctly, this should never happen.
 
+## Regenerating the demo GIF
+
+The asciinema cast and GIF live in `docs/demo/` (gitignored). To regenerate:
+
+```sh
+python3 scripts/gen-demo.py
+agg docs/demo/tablefmt-demo.cast docs/demo/tablefmt-demo.gif
+```
+
+`gen-demo.py` builds the binary if needed, runs each demo command against the real binary,
+and writes `docs/demo/tablefmt-demo.cast`. `agg` then renders it to a GIF.
+
+Example input files used by the script are tracked in `docs/demo/data/`.
+
 ## `musl` build locally
 
 ```sh

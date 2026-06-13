@@ -1,0 +1,7 @@
+[
+  {"id": 1, "name": "Widget Pro", "price": 29.99, "stock": 150, "category": "Electronics"},
+  {"id": 2, "name": "Gadget Plus", "price": 49.99, "stock": 82, "category": "Electronics"},
+  {"id": 3, "name": "Tool Kit", "price": 19.99, "stock": 247, "category": "Tools"},
+  {"id": 4, "name": "Organizer", "price": 14.99, "stock": 95, "category": "Office"},
+  {"id": 5, "name": "Cable Set", "price": 9.99, "stock": 512, "category": "Electronics"}
+]

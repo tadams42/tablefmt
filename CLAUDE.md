@@ -25,4 +25,6 @@ cargo clippy --no-deps
   `ci:`, `feat:`, `docs:`, `chore:` and similar
 
 4. after making new `git` commit, run `cargo xtask update-changelog` and then amend that
-   last commit with changes created in `CHANGELOG.md` (if there are any)
+   last commit with changes created in `CHANGELOG.md` (if there are any). Some commit
+   prefixes are not picked up by `xtask`: this is controlled by `NOISE_PREFIXES` in
+   `xtask/src/main.rs`.
