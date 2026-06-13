@@ -19,18 +19,25 @@ fn styles() -> Styles {
         .invalid(AnsiColor::Yellow.on_default().effects(Effects::BOLD))
 }
 
-pub fn parse_args() -> (Args, bool) {
-    let cmd = Args::command().styles(styles());
-    let matches = cmd.get_matches();
-    let style_explicit =
-        matches.value_source("style") == Some(clap::parser::ValueSource::CommandLine);
-    let args = Args::from_arg_matches(&matches).unwrap_or_else(|e| e.exit());
-    (args, style_explicit)
+pub fn parse_args() -> Args {
+    let matches = Args::command().styles(styles()).get_matches();
+    Args::from_arg_matches(&matches).unwrap_or_else(|e| e.exit())
 }
 
 #[derive(Parser, Debug)]
-#[command(name = "tablefmt", about = "Format tabular data as a table", version)]
+#[command(
+    name = "tablefmt",
+    about = "Format tabular data as a table",
+    version,
+    arg_required_else_help = true
+)]
 pub struct Args {
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Parser, Debug)]
+pub struct FormatArgs {
     /// Input file (default: stdin)
     #[arg(short = 'i', long)]
     pub input: Option<PathBuf>,
@@ -62,17 +69,33 @@ pub struct Args {
     /// Normalize numeric columns to N decimal places
     #[arg(short = 'p', long)]
     pub decimal_places: Option<usize>,
+}
 
-    /// Re-format an existing table; --style selects the input format (required with this flag)
-    #[arg(long, conflicts_with_all = ["source", "delimiter"])]
-    pub prettify: bool,
+#[derive(Parser, Debug)]
+pub struct PrettifyArgs {
+    /// Input file (default: stdin)
+    #[arg(short = 'i', long)]
+    pub input: Option<PathBuf>,
 
-    #[command(subcommand)]
-    pub command: Option<Commands>,
+    /// Output file (default: stdout)
+    #[arg(short = 'o', long)]
+    pub output: Option<PathBuf>,
+
+    /// Table style — selects both the input parser format and the output format (required)
+    #[arg(short = 'S', long = "style", value_enum, required = true)]
+    pub style: OutputFormat,
+
+    /// Normalize numeric columns to N decimal places
+    #[arg(short = 'p', long)]
+    pub decimal_places: Option<usize>,
 }
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
+    /// Convert tabular data (CSV, JSON, etc.) to a formatted table
+    Format(FormatArgs),
+    /// Re-format an existing table
+    Prettify(PrettifyArgs),
     /// Generate shell completion definitions
     Completions {
         /// Target shell

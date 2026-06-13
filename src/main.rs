@@ -18,35 +18,29 @@ use clap_complete::generate;
 use cli::{Args, Commands, MaxRows, SourceFormat};
 
 fn main() -> anyhow::Result<()> {
-    let (args, style_explicit) = cli::parse_args();
+    let args = cli::parse_args();
 
-    // Completions subcommand bypasses all other logic
-    if let Some(Commands::Completions { shell }) = args.command {
-        let mut cmd = Args::command();
-        let name = cmd.get_name().to_string();
-        generate(shell, &mut cmd, name, &mut io::stdout());
-        return Ok(());
-    }
-
-    // --prettify: re-parse and re-render a table of the given --style
-    if args.prettify {
-        if !style_explicit {
-            return Err(anyhow!("--style is required when using --prettify"));
+    match args.command {
+        Commands::Completions { shell } => {
+            let mut cmd = Args::command();
+            let name = cmd.get_name().to_string();
+            generate(shell, &mut cmd, name, &mut io::stdout());
+            Ok(())
         }
-        return run_prettify(&args);
+        Commands::Format(fmt_args) => run_format(&fmt_args),
+        Commands::Prettify(pfy_args) => run_prettify(&pfy_args),
     }
+}
 
-    // Validate delimiter
+fn run_format(args: &cli::FormatArgs) -> anyhow::Result<()> {
     if let Some(d) = args.delimiter {
         if !d.is_ascii() {
             return Err(anyhow!("--delimiter must be a single ASCII character"));
         }
     }
 
-    // Resolve source format
-    let source = resolve_source(&args)?;
+    let source = resolve_source(args)?;
 
-    // Open input
     let input_bytes: Vec<u8> = match &args.input {
         Some(path) => {
             fs::read(path).with_context(|| format!("failed to read '{}'", path.display()))?
@@ -62,7 +56,6 @@ fn main() -> anyhow::Result<()> {
 
     let delimiter = args.delimiter.map(|c| c as u8);
 
-    // Parse input into TableData
     let mut data = match source {
         SourceFormat::Csv => parse::parse_csv(input_bytes.as_slice(), delimiter.unwrap_or(b','))?,
         SourceFormat::Tsv => parse::parse_csv(input_bytes.as_slice(), delimiter.unwrap_or(b'\t'))?,
@@ -84,27 +77,21 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    // Truncate rows before computing column metadata
     if let MaxRows::Limit(n) = args.max_rows {
         data.truncate_rows(n);
     }
 
-    // Numeric detection and optional normalization
     numeric::populate_column_meta(&mut data);
     if let Some(places) = args.decimal_places {
         numeric::normalize_decimal_places(&mut data, places);
     }
 
-    // Determine whether output is a TTY
     let is_tty = match &args.output {
         None => io::stdout().is_terminal(),
         Some(_) => false,
     };
 
-    // Render
     let rendered = format::render(&data, &args.style, &args.color, is_tty);
-
-    // Write output (always end with a newline)
     let rendered = if rendered.ends_with('\n') {
         rendered
     } else {
@@ -124,9 +111,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_prettify(args: &cli::Args) -> anyhow::Result<()> {
-    use cli::MaxRows;
-
+fn run_prettify(args: &cli::PrettifyArgs) -> anyhow::Result<()> {
     let input_bytes: Vec<u8> = match &args.input {
         Some(path) => {
             fs::read(path).with_context(|| format!("failed to read '{}'", path.display()))?
@@ -147,11 +132,7 @@ fn run_prettify(args: &cli::Args) -> anyhow::Result<()> {
     let line_refs: Vec<&str> = bare_lines.iter().map(String::as_str).collect();
 
     let mut data = table_parse::parse_table(&line_refs, &args.style)
-        .context("failed to parse table for --prettify")?;
-
-    if let MaxRows::Limit(n) = args.max_rows {
-        data.truncate_rows(n);
-    }
+        .context("failed to parse table for prettify")?;
 
     numeric::populate_column_meta(&mut data);
     if let Some(places) = args.decimal_places {
@@ -163,7 +144,7 @@ fn run_prettify(args: &cli::Args) -> anyhow::Result<()> {
         Some(_) => false,
     };
 
-    let rendered = format::render(&data, &args.style, &args.color, is_tty);
+    let rendered = format::render(&data, &args.style, &cli::ColorMode::None, is_tty);
     let rendered = if rendered.ends_with('\n') {
         rendered
     } else {
@@ -187,12 +168,11 @@ fn run_prettify(args: &cli::Args) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn resolve_source(args: &Args) -> anyhow::Result<SourceFormat> {
+fn resolve_source(args: &cli::FormatArgs) -> anyhow::Result<SourceFormat> {
     if let Some(ref s) = args.source {
         return Ok(s.clone());
     }
 
-    // Infer from file extension when --input is given
     if let Some(ref path) = args.input {
         if let Some(ext) = Path::new(path).extension().and_then(|e| e.to_str()) {
             let src = match ext.to_ascii_lowercase().as_str() {
@@ -216,13 +196,11 @@ fn resolve_source(args: &Args) -> anyhow::Result<SourceFormat> {
         ));
     }
 
-    // stdin without --source or --delimiter is not allowed
     if args.delimiter.is_none() {
         return Err(anyhow!(
             "reading from stdin requires --source or --delimiter to identify the format"
         ));
     }
 
-    // Delimiter provided but no source: default to CSV-like parsing
     Ok(SourceFormat::Csv)
 }
