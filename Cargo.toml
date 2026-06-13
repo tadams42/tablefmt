@@ -27,7 +27,7 @@ name = "tablefmt"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive", "color"] }
 clap_complete = "4.6.5"
 tabled = { version = "0.20", features = ["ansi"] }
 csv = "1"

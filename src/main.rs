@@ -10,13 +10,13 @@ use std::io::{self, IsTerminal, Read};
 use std::path::Path;
 
 use anyhow::{anyhow, Context};
-use clap::{CommandFactory, Parser};
+use clap::CommandFactory;
 use clap_complete::generate;
 
 use cli::{Args, Commands, MaxRows, SourceFormat};
 
 fn main() -> anyhow::Result<()> {
-    let args = Args::parse();
+    let args = cli::parse_args();
 
     // Completions subcommand bypasses all other logic
     if let Some(Commands::Completions { shell }) = args.command {

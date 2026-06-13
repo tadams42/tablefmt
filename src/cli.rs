@@ -1,10 +1,28 @@
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::builder::styling::{AnsiColor, Effects, Styles};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
 
+fn styles() -> Styles {
+    Styles::styled()
+        .header(AnsiColor::Green.on_default().effects(Effects::BOLD | Effects::UNDERLINE))
+        .usage(AnsiColor::Green.on_default().effects(Effects::BOLD))
+        .literal(AnsiColor::Cyan.on_default().effects(Effects::BOLD))
+        .placeholder(AnsiColor::Cyan.on_default())
+        .error(AnsiColor::Red.on_default().effects(Effects::BOLD))
+        .valid(AnsiColor::Green.on_default().effects(Effects::BOLD))
+        .invalid(AnsiColor::Yellow.on_default().effects(Effects::BOLD))
+}
+
+pub fn parse_args() -> Args {
+    let cmd = Args::command().styles(styles());
+    let matches = cmd.get_matches();
+    Args::from_arg_matches(&matches).unwrap_or_else(|e| e.exit())
+}
+
 #[derive(Parser, Debug)]
-#[command(name = "tablefmt", about = "Format tabular data as a table")]
+#[command(name = "tablefmt", about = "Format tabular data as a table", version)]
 pub struct Args {
     /// Input file (default: stdin)
     #[arg(short = 'i', long)]
