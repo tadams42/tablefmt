@@ -1,5 +1,6 @@
 mod cli;
 mod color;
+mod edit;
 mod format;
 mod locate;
 mod model;
@@ -29,7 +30,15 @@ fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Commands::Format(fmt_args) => run_format(&fmt_args),
-        Commands::Prettify(pfy_args) => run_prettify(&pfy_args),
+        Commands::Edit(edit_args) => {
+            match run_edit(&edit_args) {
+                Ok(()) => Ok(()),
+                Err(e) => {
+                    println!("{}", serde_json::json!({"error": e.to_string()}));
+                    std::process::exit(1);
+                }
+            }
+        }
     }
 }
 
@@ -112,127 +121,78 @@ fn run_format(args: &cli::FormatArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_prettify(args: &cli::PrettifyArgs) -> anyhow::Result<()> {
-    if args.line.is_none() && args.style.is_none() {
-        return Err(anyhow!("--style is required when --line is not given"));
-    }
+fn run_edit(args: &cli::EditArgs) -> anyhow::Result<()> {
+    use cli::EditOperation;
 
-    // ── Path B: locate table by line number inside a file ───────────────────
-    if let Some(line_num) = args.line {
-        let path = args
-            .input
-            .as_ref()
-            .ok_or_else(|| anyhow!("--input must be a file path when --line is given"))?;
-
-        let file_content = fs::read_to_string(path)
-            .with_context(|| format!("failed to read '{}'", path.display()))?;
-
-        let file_lines: Vec<&str> = file_content.lines().collect();
-
-        let (start, end) = locate::find_table_bounds(&file_lines, line_num)
-            .with_context(|| format!("cannot locate table at line {line_num}"))?;
-
-        let table_str = file_lines[start..=end].join("\n");
-        let (bare_lines, meta) = prettify::preprocess(&table_str);
-        let line_refs: Vec<&str> = bare_lines.iter().map(String::as_str).collect();
-
-        let style = args
-            .style
-            .clone()
-            .unwrap_or_else(|| table_parse::detect_style(&line_refs));
-
-        let mut data = table_parse::parse_table(&line_refs, &style)
-            .context("failed to parse table for prettify")?;
-
-        numeric::populate_column_meta(&mut data);
-        if let Some(places) = args.decimal_places {
-            numeric::normalize_decimal_places(&mut data, places);
-        }
-
-        let rendered = format::render(&data, &style, &cli::ColorMode::None, false);
-        let rendered = if rendered.ends_with('\n') {
-            rendered
-        } else {
-            rendered + "\n"
-        };
-        let reformatted = prettify::postprocess(&rendered, &meta);
-
-        // Splice reformatted table back into the file
-        let new_table_lines: Vec<&str> = reformatted.trim_end_matches('\n').lines().collect();
-        let mut result_lines: Vec<&str> = Vec::with_capacity(file_lines.len());
-        result_lines.extend_from_slice(&file_lines[..start]);
-        result_lines.extend_from_slice(&new_table_lines);
-        if end + 1 < file_lines.len() {
-            result_lines.extend_from_slice(&file_lines[end + 1..]);
-        }
-
-        let mut result = result_lines.join("\n");
-        if file_content.ends_with('\n') {
-            result.push('\n');
-        }
-
-        let out_path = args.output.as_deref().unwrap_or(path.as_path());
-        fs::write(out_path, result.as_bytes())
-            .with_context(|| format!("failed to write '{}'", out_path.display()))?;
-
-        return Ok(());
-    }
-
-    // ── Path A: existing behaviour — pipe the entire table ───────────────────
-    let style = args.style.as_ref().unwrap(); // validated above
-
-    let input_bytes: Vec<u8> = match &args.input {
-        Some(path) => {
-            fs::read(path).with_context(|| format!("failed to read '{}'", path.display()))?
-        }
-        None => {
-            let mut buf = Vec::new();
-            io::stdin()
-                .read_to_end(&mut buf)
-                .context("failed to read stdin")?;
-            buf
-        }
+    let (file_path, line_num) = match &args.operation {
+        EditOperation::Prettify(a) => (&a.file, a.line),
+        EditOperation::AddColumnBefore(a)
+        | EditOperation::AddColumnAfter(a)
+        | EditOperation::RemoveColumn(a) => (&a.file, a.line),
     };
 
-    let input_str =
-        std::str::from_utf8(&input_bytes).context("prettify input is not valid UTF-8")?;
+    let file_content = fs::read_to_string(file_path)
+        .with_context(|| format!("failed to read '{}'", file_path.display()))?;
 
-    let (bare_lines, meta) = prettify::preprocess(input_str);
+    let file_lines: Vec<&str> = file_content.lines().collect();
+
+    let (start, end) = locate::find_table_bounds(&file_lines, line_num)
+        .with_context(|| format!("cannot locate table at line {line_num}"))?;
+
+    let table_str = file_lines[start..=end].join("\n");
+    let (bare_lines, meta) = prettify::preprocess(&table_str);
     let line_refs: Vec<&str> = bare_lines.iter().map(String::as_str).collect();
 
-    let mut data = table_parse::parse_table(&line_refs, style)
-        .context("failed to parse table for prettify")?;
+    let style = table_parse::detect_style(&line_refs);
+
+    let mut data = table_parse::parse_table(&line_refs, &style).context("failed to parse table")?;
 
     numeric::populate_column_meta(&mut data);
-    if let Some(places) = args.decimal_places {
-        numeric::normalize_decimal_places(&mut data, places);
+
+    match &args.operation {
+        EditOperation::Prettify(pargs) => {
+            if let Some(places) = pargs.decimal_places {
+                numeric::normalize_decimal_places(&mut data, places);
+            }
+        }
+        EditOperation::AddColumnBefore(cargs) => {
+            let original_line = file_lines[cargs.line];
+            let col_idx = edit::find_column_at_cursor(original_line, cargs.col);
+            data = edit::add_column(data, col_idx);
+            numeric::populate_column_meta(&mut data);
+        }
+        EditOperation::AddColumnAfter(cargs) => {
+            let original_line = file_lines[cargs.line];
+            let col_idx = edit::find_column_at_cursor(original_line, cargs.col);
+            data = edit::add_column(data, col_idx + 1);
+            numeric::populate_column_meta(&mut data);
+        }
+        EditOperation::RemoveColumn(cargs) => {
+            let original_line = file_lines[cargs.line];
+            let col_idx = edit::find_column_at_cursor(original_line, cargs.col);
+            data = edit::remove_column(data, col_idx).context("failed to remove column")?;
+            numeric::populate_column_meta(&mut data);
+        }
     }
 
-    let is_tty = match &args.output {
-        None => io::stdout().is_terminal(),
-        Some(_) => false,
-    };
-
-    let rendered = format::render(&data, style, &cli::ColorMode::None, is_tty);
+    let rendered = format::render(&data, &style, &cli::ColorMode::None, false);
     let rendered = if rendered.ends_with('\n') {
         rendered
     } else {
         rendered + "\n"
     };
-    let final_out = prettify::postprocess(&rendered, &meta);
-    let final_out = if final_out.ends_with('\n') {
-        final_out
-    } else {
-        final_out + "\n"
-    };
+    let reformatted = prettify::postprocess(&rendered, &meta);
+    let text = reformatted.trim_end_matches('\n');
 
-    match &args.output {
-        None => print!("{final_out}"),
-        Some(path) => {
-            fs::write(path, final_out.as_bytes())
-                .with_context(|| format!("failed to write '{}'", path.display()))?
-        }
-    }
+    println!(
+        "{}",
+        serde_json::json!({
+            "start_line": start,
+            "end_line": end,
+            "text": text,
+            "style": style.to_string(),
+        })
+    );
 
     Ok(())
 }

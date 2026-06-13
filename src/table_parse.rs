@@ -28,7 +28,7 @@ pub fn is_border_line(line: &str) -> bool {
     })
 }
 
-fn detect_separator(line: &str) -> char {
+pub(crate) fn detect_separator(line: &str) -> char {
     const CANDIDATES: &[char] = &['│', '┃', '║', '·', '|'];
     CANDIDATES
         .iter()

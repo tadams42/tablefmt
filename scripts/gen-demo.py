@@ -130,10 +130,10 @@ def main():
         [BINARY, "format", "-i", "docs/demo/data/metrics.yaml", "-s", "rst"],
     )
 
-    w.section_header("Re-align an existing Markdown table with prettify")
+    w.section_header("Re-align a table — edit prettify outputs JSON for editor integration")
     w.run(
-        "tablefmt prettify -s github -i docs/demo/data/table.md",
-        [BINARY, "prettify", "-s", "github", "-i", "docs/demo/data/table.md"],
+        "tablefmt edit prettify docs/demo/data/table.md --line 0",
+        [BINARY, "edit", "prettify", "docs/demo/data/table.md", "--line", "0"],
     )
 
     w.pause(1.0)

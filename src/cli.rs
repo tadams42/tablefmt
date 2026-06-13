@@ -73,42 +73,69 @@ pub struct FormatArgs {
 }
 
 #[derive(Parser, Debug)]
-pub struct PrettifyArgs {
-    /// Input file (default: stdin)
-    #[arg(short = 'i', long)]
-    pub input: Option<PathBuf>,
+pub struct EditArgs {
+    #[command(subcommand)]
+    pub operation: EditOperation,
+}
 
-    /// Output file (default: stdout)
-    #[arg(short = 'o', long)]
-    pub output: Option<PathBuf>,
+#[derive(Subcommand, Debug)]
+pub enum EditOperation {
+    /// Re-format the table at the given line (auto-detects style)
+    Prettify(EditPrettifyArgs),
+    /// Insert an empty column before the column under the cursor
+    AddColumnBefore(EditColumnArgs),
+    /// Insert an empty column after the column under the cursor
+    AddColumnAfter(EditColumnArgs),
+    /// Remove the column under the cursor
+    RemoveColumn(EditColumnArgs),
+}
 
-    /// Table style — selects both the input parser format and the output format.
-    /// Required unless --line is given, in which case the style is auto-detected.
-    #[arg(short = 's', long = "style", value_enum)]
-    pub style: Option<OutputFormat>,
+#[derive(Parser, Debug)]
+pub struct EditPrettifyArgs {
+    /// File to edit
+    pub file: PathBuf,
 
-    /// 0-based line number of any line inside the table to reformat.
-    /// Requires --input to be a file path. Writes the full file back in place
-    /// (or to --output if given). The style is auto-detected unless --style is also given.
-    #[arg(short = 'l', long)]
-    pub line: Option<usize>,
+    /// 0-based line number of any line inside the table
+    #[arg(long)]
+    pub line: usize,
 
     /// Normalize numeric columns to N decimal places
     #[arg(short = 'N', long)]
     pub decimal_places: Option<usize>,
 }
 
+#[derive(Parser, Debug)]
+pub struct EditColumnArgs {
+    /// File to edit
+    pub file: PathBuf,
+
+    /// 0-based line number of any line inside the table
+    #[arg(long)]
+    pub line: usize,
+
+    /// 0-based character offset of the cursor within that line
+    #[arg(long)]
+    pub col: usize,
+}
+
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Convert tabular data (CSV, JSON, etc.) to a formatted table
     Format(FormatArgs),
-    /// Re-format an existing table (also works on commented tables: //, ///, #, *)
-    Prettify(PrettifyArgs),
+    /// Edit a table in a file and return a JSON replacement payload
+    Edit(EditArgs),
     /// Generate shell completion definitions
     Completions {
         /// Target shell
         shell: Shell,
     },
+}
+
+impl std::fmt::Display for OutputFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use clap::ValueEnum;
+        f.write_str(self.to_possible_value().unwrap().get_name())
+    }
 }
 
 #[derive(Clone, Debug, ValueEnum)]

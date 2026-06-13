@@ -15,7 +15,7 @@
 
 - **Reads CSV, TSV, PSV, JSON, YAML, TOML** — format auto-detected from the file extension
 - **15+ output styles** — GitHub Markdown, PostgreSQL, reStructuredText, AsciiDoc, Jira, Org-mode, Unicode box-drawing, and more
-- **`prettify`** — re-align a misaligned table without touching its content
+- **`edit`** — editor API: re-align a table or add/remove columns; outputs a JSON replacement payload for buffer-precise edits
 - **Column or row colorization** in the terminal
 - **Decimal normalization** — round all numeric values in a column to a fixed number of decimal places
 - **`--max-rows`** — cap output length (default: 20 rows)
@@ -55,21 +55,29 @@ tablefmt format -i data.csv -s psql
 tablefmt format -i data.yaml -s rst
 
 # Colorize alternating columns; limit to 50 rows; 2 decimal places
-tablefmt format -i data.csv --color columns --max-rows 50 -p 2
+tablefmt format -i data.csv --color columns --max-rows 50 -N 2
 
 # Write to a file
 tablefmt format -i data.csv -o table.md
 ```
 
-### `prettify` — re-align an existing table
+### `edit` — table editing for editor integration
+
+Outputs a JSON payload `{"start_line", "end_line", "text", "style"}` so that editors can replace the table lines in their own buffer without tablefmt touching the file. Line numbers are 0-based; `--col` is the cursor's character offset within that line.
 
 ```sh
-# Re-align a hand-edited Markdown table
-tablefmt prettify -s github -i docs/table.md
+# Re-align the table that contains line 3
+tablefmt edit prettify docs/table.md --line 3
 
-# Pipe from stdin
-cat table.md | tablefmt prettify -s github
+# Insert an empty column before/after the column under the cursor
+tablefmt edit add-column-before docs/table.md --line 3 --col 12
+tablefmt edit add-column-after  docs/table.md --line 3 --col 12
+
+# Remove the column under the cursor
+tablefmt edit remove-column docs/table.md --line 3 --col 12
 ```
+
+The style is always auto-detected from the table content. On error (e.g. no table found at the given line) exit code is 1 and stdout is `{"error": "…"}`.
 
 ### `completions` — generate shell completions
 
