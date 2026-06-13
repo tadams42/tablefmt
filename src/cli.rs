@@ -67,7 +67,7 @@ pub struct FormatArgs {
     pub max_rows: MaxRows,
 
     /// Normalize numeric columns to N decimal places
-    #[arg(short = 'p', long)]
+    #[arg(short = 'N', long)]
     pub decimal_places: Option<usize>,
 }
 
@@ -86,7 +86,7 @@ pub struct PrettifyArgs {
     pub style: OutputFormat,
 
     /// Normalize numeric columns to N decimal places
-    #[arg(short = 'p', long)]
+    #[arg(short = 'N', long)]
     pub decimal_places: Option<usize>,
 }
 

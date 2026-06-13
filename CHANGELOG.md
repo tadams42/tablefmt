@@ -1,5 +1,6 @@
 ## unreleased
 
+- feat: renamed -p/--decimal-places to -N/--decimal-places
 - feat: migrated heavy-outline, orgtbl, table-el, rst-grid styles to tabled
 - feat: renamed -s/--source to -f/--format and -S/--style to -s/--style
 - cli: fix action warnings in GitHub workflow

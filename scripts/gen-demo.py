@@ -4,7 +4,7 @@ Generate an asciinema v2 cast file for tablefmt.
 
 Usage:
     python3 scripts/gen-demo.py
-    agg docs/demo/tablefmt-demo.cast docs/demo/tablefmt-demo.gif
+    agg docs/demo/tablefmt-demo.cast demo.gif
 """
 
 import json
