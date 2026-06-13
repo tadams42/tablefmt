@@ -36,56 +36,62 @@ pub fn render(data: &TableData, fmt: &OutputFormat, color: &ColorMode, is_tty: b
             let widths = col_widths(data);
             render_asciidoc(data, &widths)
         }
-        OutputFormat::Orgtbl => tabled_style!(
-            data,
-            Style::empty()
-                .left('|')
-                .right('|')
-                .vertical('|')
-                .horizontals([(1, HorizontalLine::full('-', '+', '|', '|'))]),
-            color,
-            is_tty
-        ),
-        OutputFormat::RstGrid => tabled_style!(
-            data,
-            Style::empty()
-                .top('-')
-                .bottom('-')
-                .left('|')
-                .right('|')
-                .vertical('|')
-                .horizontal('-')
-                .corner_top_left('+')
-                .corner_top_right('+')
-                .corner_bottom_left('+')
-                .corner_bottom_right('+')
-                .intersection_top('+')
-                .intersection_bottom('+')
-                .intersection_left('+')
-                .intersection_right('+')
-                .intersection('+')
-                .horizontals([(1, HorizontalLine::full('=', '+', '+', '+'))]),
-            color,
-            is_tty
-        ),
-        OutputFormat::HeavyOutline => tabled_style!(
-            data,
-            Style::empty()
-                .top('━')
-                .bottom('━')
-                .left('┃')
-                .right('┃')
-                .vertical('┃')
-                .corner_top_left('┏')
-                .corner_top_right('┓')
-                .corner_bottom_left('┗')
-                .corner_bottom_right('┛')
-                .intersection_top('┳')
-                .intersection_bottom('┻')
-                .horizontals([(1, HorizontalLine::full('━', '╋', '┣', '┫'))]),
-            color,
-            is_tty
-        ),
+        OutputFormat::Orgtbl => {
+            tabled_style!(
+                data,
+                Style::empty()
+                    .left('|')
+                    .right('|')
+                    .vertical('|')
+                    .horizontals([(1, HorizontalLine::full('-', '+', '|', '|'))]),
+                color,
+                is_tty
+            )
+        }
+        OutputFormat::RstGrid => {
+            tabled_style!(
+                data,
+                Style::empty()
+                    .top('-')
+                    .bottom('-')
+                    .left('|')
+                    .right('|')
+                    .vertical('|')
+                    .horizontal('-')
+                    .corner_top_left('+')
+                    .corner_top_right('+')
+                    .corner_bottom_left('+')
+                    .corner_bottom_right('+')
+                    .intersection_top('+')
+                    .intersection_bottom('+')
+                    .intersection_left('+')
+                    .intersection_right('+')
+                    .intersection('+')
+                    .horizontals([(1, HorizontalLine::full('=', '+', '+', '+'))]),
+                color,
+                is_tty
+            )
+        }
+        OutputFormat::HeavyOutline => {
+            tabled_style!(
+                data,
+                Style::empty()
+                    .top('━')
+                    .bottom('━')
+                    .left('┃')
+                    .right('┃')
+                    .vertical('┃')
+                    .corner_top_left('┏')
+                    .corner_top_right('┓')
+                    .corner_bottom_left('┗')
+                    .corner_bottom_right('┛')
+                    .intersection_top('┳')
+                    .intersection_bottom('┻')
+                    .horizontals([(1, HorizontalLine::full('━', '╋', '┣', '┫'))]),
+                color,
+                is_tty
+            )
+        }
     }
 }
 

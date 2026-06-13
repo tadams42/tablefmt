@@ -58,11 +58,12 @@ pub struct FormatArgs {
     #[arg(short = 's', long = "style", value_enum, default_value = "github")]
     pub style: OutputFormat,
 
-    /// Column/row coloring (columns/c, rows/r, none). Not all styles support color; unsupported styles silently ignore this option.
+    /// Column/row coloring (columns/c, rows/r, none). Not all styles support color; unsupported
+    /// styles silently ignore this option.
     #[arg(long, value_enum, default_value = "none")]
     pub color: ColorMode,
 
-    /// Max data rows to output (0 or null = all rows; default 20)
+    /// Max data rows to output (0 or null = all rows)
     #[arg(long, value_parser = parse_max_rows, default_value = "20")]
     pub max_rows: MaxRows,
 
@@ -94,7 +95,7 @@ pub struct PrettifyArgs {
 pub enum Commands {
     /// Convert tabular data (CSV, JSON, etc.) to a formatted table
     Format(FormatArgs),
-    /// Re-format an existing table
+    /// Re-format an existing table (also works on commented tables: //, ///, #, *)
     Prettify(PrettifyArgs),
     /// Generate shell completion definitions
     Completions {
