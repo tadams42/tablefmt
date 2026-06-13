@@ -28,10 +28,6 @@ pub fn render(data: &TableData, fmt: &OutputFormat, color: &ColorMode, is_tty: b
         OutputFormat::Extended => tabled_style!(data, Style::extended(), color, is_tty),
 
         // Custom renderers
-        OutputFormat::Reddit => {
-            let widths = col_widths(data);
-            render_reddit(data, &widths)
-        }
         OutputFormat::Jira => {
             let widths = col_widths(data);
             render_jira(data, &widths)
@@ -47,28 +43,6 @@ pub fn render(data: &TableData, fmt: &OutputFormat, color: &ColorMode, is_tty: b
                 .right('|')
                 .vertical('|')
                 .horizontals([(1, HorizontalLine::full('-', '+', '|', '|'))]),
-            color,
-            is_tty
-        ),
-        OutputFormat::TableEl => tabled_style!(
-            data,
-            Style::empty()
-                .top('-')
-                .bottom('-')
-                .left('|')
-                .right('|')
-                .vertical('|')
-                .horizontal('-')
-                .corner_top_left('+')
-                .corner_top_right('+')
-                .corner_bottom_left('+')
-                .corner_bottom_right('+')
-                .intersection_top('+')
-                .intersection_bottom('+')
-                .intersection_left('+')
-                .intersection_right('+')
-                .intersection('+')
-                .horizontals([(1, HorizontalLine::full('=', '+', '+', '+'))]),
             color,
             is_tty
         ),
@@ -169,35 +143,6 @@ fn fmt_cell(cell: &str, width: usize, right_align: bool) -> String {
 
 // --- fully custom string renderers ---
 
-fn render_reddit(data: &TableData, widths: &[usize]) -> String {
-    let mut out = String::new();
-
-    // Header row (same as github/markdown)
-    out.push_str(&pipe_row(&data.headers, widths, &vec![false; widths.len()]));
-
-    // Separator row: content-width dashes surrounded by spaces
-    out.push('|');
-    for (i, &w) in widths.iter().enumerate() {
-        out.push(' ');
-        for _ in 0..w {
-            out.push('-');
-        }
-        out.push(' ');
-        if i + 1 < widths.len() {
-            out.push('|');
-        }
-    }
-    out.push_str("|\n");
-
-    // Data rows
-    let aligns: Vec<bool> = data.column_meta.iter().map(|m| m.is_numeric).collect();
-    for row in &data.rows {
-        out.push_str(&pipe_row(row, widths, &aligns));
-    }
-
-    out
-}
-
 fn render_jira(data: &TableData, widths: &[usize]) -> String {
     let mut out = String::new();
     let aligns: Vec<bool> = data.column_meta.iter().map(|m| m.is_numeric).collect();
@@ -268,20 +213,6 @@ fn asciidoc_row(cells: &[String], widths: &[usize], aligns: &[bool]) -> String {
     s
 }
 
-fn pipe_row(cells: &[String], widths: &[usize], aligns: &[bool]) -> String {
-    let mut s = String::from('|');
-    for (i, (cell, &w)) in cells.iter().zip(widths.iter()).enumerate() {
-        s.push(' ');
-        s.push_str(&fmt_cell(cell, w, aligns[i]));
-        s.push(' ');
-        if i + 1 < cells.len() {
-            s.push('|');
-        }
-    }
-    s.push_str("|\n");
-    s
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -301,16 +232,6 @@ mod tests {
             };
         }
         data
-    }
-
-    #[test]
-    fn render_reddit_separator_uses_content_width_dashes() {
-        let data = make_data(&["item", "qty"], &[&["spam", "42"]], &[false, true]);
-        let widths = col_widths(&data);
-        let out = render_reddit(&data, &widths);
-        let lines: Vec<&str> = out.lines().collect();
-        // Separator line (index 1) should have content-width dashes with spaces
-        assert_eq!(lines[1], "| ---- | --- |");
     }
 
     #[test]

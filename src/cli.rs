@@ -122,9 +122,6 @@ pub enum OutputFormat {
     Rst,
     #[value(name = "rst-grid")]
     RstGrid,
-    Reddit,
-    #[value(name = "table-el")]
-    TableEl,
     Orgtbl,
     Dots,
     Ascii,

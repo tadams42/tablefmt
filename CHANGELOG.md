@@ -1,5 +1,6 @@
 ## unreleased
 
+- feat: removed reddit and table-el styles
 - feat: renamed -p/--decimal-places to -N/--decimal-places
 - feat: migrated heavy-outline, orgtbl, table-el, rst-grid styles to tabled
 - feat: renamed -s/--source to -f/--format and -S/--style to -s/--style

@@ -14,7 +14,7 @@
 ## Features
 
 - **Reads CSV, TSV, PSV, JSON, YAML, TOML** — format auto-detected from the file extension
-- **15+ output styles** — GitHub Markdown, PostgreSQL, reStructuredText, AsciiDoc, Jira, Reddit, Org-mode, Unicode box-drawing, and more
+- **15+ output styles** — GitHub Markdown, PostgreSQL, reStructuredText, AsciiDoc, Jira, Org-mode, Unicode box-drawing, and more
 - **`prettify`** — re-align a misaligned table without touching its content
 - **Column or row colorization** in the terminal
 - **Decimal normalization** — round all numeric values in a column to a fixed number of decimal places
@@ -148,35 +148,15 @@ tablefmt completions fish > ~/.config/fish/completions/tablefmt.fish
 +-------+----------+-------+
 ```
 
-### `reddit` — Reddit Markdown table
-
-```
-| Month | Revenue  | Units |
-| ----- | -------- | ----- |
-| Jan   | 12500.50 |   342 |
-| Feb   | 13200.75 |   389 |
-| Mar   | 15800.25 |   421 |
-```
-
-### `table-el` — Emacs `table.el` style
-
-```
-+-------+----------+-------+
-| Month | Revenue  | Units |
-+=======+==========+=======+
-| Jan   | 12500.50 |   342 |
-+-------+----------+-------+
-| Feb   | 13200.75 |   389 |
-+-------+----------+-------+
-| Mar   | 15800.25 |   421 |
-+-------+----------+-------+
-```
-
 ### `orgtbl` — Emacs Org-mode table
 
+Like `github`, but the separator row uses `+` at column junctions instead of `-`.
+Emacs org-mode requires the `+` to recognize column boundaries when re-aligning
+a table with `TAB`.
+
 ```
-| Month | Revenue  | Units |
-|-------+----------+-------|
+| Month |  Revenue | Units |
+|-------+----------+-------|   ← + at column crossings (not -)
 | Jan   | 12500.50 |   342 |
 | Feb   | 13200.75 |   389 |
 | Mar   | 15800.25 |   421 |
