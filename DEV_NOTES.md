@@ -65,7 +65,7 @@ The asciinema cast and GIF live in `docs/demo/` (gitignored). To regenerate:
 
 ```sh
 python3 scripts/gen-demo.py
-agg docs/demo/tablefmt-demo.cast docs/demo/tablefmt-demo.gif
+agg docs/demo/tablefmt-demo.cast demo.gif
 ```
 
 `gen-demo.py` builds the binary if needed, runs each demo command against the real binary,
