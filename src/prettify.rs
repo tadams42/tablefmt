@@ -48,6 +48,20 @@ pub fn preprocess(input: &str) -> (Vec<String>, PrettifyMeta) {
     (bare_lines, meta)
 }
 
+/// Strips leading whitespace and a single comment prefix from `line`,
+/// returning the bare table content. Used by `locate` for per-line detection.
+pub fn bare_line(line: &str) -> &str {
+    const COMMENT_PREFIXES: &[&str] = &["///", "//", "#", "*"];
+    let (_, after_ws) = measure_leading_ws(line);
+    for &prefix in COMMENT_PREFIXES {
+        if let Some(after_comment) = after_ws.strip_prefix(prefix) {
+            let (_, content) = measure_leading_ws(after_comment);
+            return content;
+        }
+    }
+    after_ws
+}
+
 fn measure_leading_ws(s: &str) -> (usize, &str) {
     let mut spaces = 0usize;
     let mut rest = s;

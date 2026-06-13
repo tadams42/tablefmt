@@ -82,9 +82,16 @@ pub struct PrettifyArgs {
     #[arg(short = 'o', long)]
     pub output: Option<PathBuf>,
 
-    /// Table style — selects both the input parser format and the output format (required)
-    #[arg(short = 's', long = "style", value_enum, required = true)]
-    pub style: OutputFormat,
+    /// Table style — selects both the input parser format and the output format.
+    /// Required unless --line is given, in which case the style is auto-detected.
+    #[arg(short = 's', long = "style", value_enum)]
+    pub style: Option<OutputFormat>,
+
+    /// 0-based line number of any line inside the table to reformat.
+    /// Requires --input to be a file path. Writes the full file back in place
+    /// (or to --output if given). The style is auto-detected unless --style is also given.
+    #[arg(short = 'l', long)]
+    pub line: Option<usize>,
 
     /// Normalize numeric columns to N decimal places
     #[arg(short = 'N', long)]

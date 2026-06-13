@@ -21,7 +21,7 @@ pub fn parse_table(lines: &[&str], style: &OutputFormat) -> anyhow::Result<Table
 // A line is a border/separator line if every character is whitespace, an ASCII
 // structural char, or falls in the Unicode box-drawing block (U+2500..=U+257F).
 // Content chars (letters, digits, punctuation outside the set) mark data lines.
-fn is_border_line(line: &str) -> bool {
+pub fn is_border_line(line: &str) -> bool {
     line.chars().all(|c| {
         matches!(c, ' ' | '\t' | '-' | '=' | '+' | '|' | '·')
             || ('\u{2500}'..='\u{257F}').contains(&c)
@@ -164,6 +164,108 @@ fn parse_rst_table(lines: &[&str]) -> anyhow::Result<TableData> {
     Ok(TableData::new(headers, rows))
 }
 
+/// Infer the table style from a slice of bare (comment-stripped) table lines.
+/// Returns the best-matching `OutputFormat`, falling back to `Github` when uncertain.
+pub fn detect_style(bare_lines: &[&str]) -> crate::cli::OutputFormat {
+    use crate::cli::OutputFormat;
+
+    for line in bare_lines {
+        if line.is_empty() {
+            continue;
+        }
+        // AsciiDoc: |==== delimiter or [cols=...] attribute line
+        if line.starts_with("|===") || line.starts_with("[cols=") {
+            return OutputFormat::Asciidoc;
+        }
+        // Extended: double-vertical bar ║ (U+2551)
+        if line.contains('║') {
+            return OutputFormat::Extended;
+        }
+        // HeavyOutline: heavy horizontal ━ (U+2501)
+        if line.contains('━') {
+            return OutputFormat::HeavyOutline;
+        }
+        // Dots: middle-dot separator ·
+        if line.contains('·') {
+            return OutputFormat::Dots;
+        }
+    }
+
+    // RST simple-table: at least one separator line that is only '=' and spaces
+    // (no '|' or '+' — distinguishes it from other styles)
+    let has_rst_sep = bare_lines.iter().any(|line| {
+        !line.trim().is_empty()
+            && !line.contains('|')
+            && !line.contains('+')
+            && line.chars().all(|c| c == '=' || c == ' ')
+    });
+    if has_rst_sep {
+        return OutputFormat::Rst;
+    }
+
+    // Ascii / RstGrid: border line starts with '+' and uses only '+', '-', '=', '|', ' '
+    let has_plus_border = bare_lines.iter().any(|line| {
+        !line.is_empty()
+            && line.starts_with('+')
+            && line
+                .chars()
+                .all(|c| matches!(c, '+' | '-' | '=' | '|' | ' '))
+    });
+    if has_plus_border {
+        // RstGrid uses '|' for verticals too — same detection as Ascii.
+        // Default to Ascii; user can override with --style rst-grid.
+        return OutputFormat::Ascii;
+    }
+
+    // Modern: uses ╒/╘/╞/╡ corners (double-single mix); Sharp: uses plain ┌/┘
+    let has_box_drawing = bare_lines
+        .iter()
+        .any(|line| line.contains('│') || line.contains('─'));
+    if has_box_drawing {
+        let has_modern_corners = bare_lines.iter().any(|line| {
+            line.contains('╒') || line.contains('╘') || line.contains('╞') || line.contains('╡')
+        });
+        if has_modern_corners {
+            return OutputFormat::Modern;
+        }
+        return OutputFormat::Sharp;
+    }
+
+    // Jira: header row uses || delimiters
+    if bare_lines
+        .first()
+        .is_some_and(|line| line.starts_with("||"))
+    {
+        return OutputFormat::Jira;
+    }
+
+    // Orgtbl: separator line has '|' on both ends and '+' inside (e.g. |---+---|)
+    let has_orgtbl_sep = bare_lines.iter().any(|line| {
+        !line.is_empty()
+            && line.starts_with('|')
+            && line.ends_with('|')
+            && line.contains('+')
+            && line.chars().all(|c| matches!(c, '|' | '-' | '+' | ' '))
+    });
+    if has_orgtbl_sep {
+        return OutputFormat::Orgtbl;
+    }
+
+    // Psql: separator has '+' inside but no leading '|' (e.g. ---+---)
+    let has_psql_sep = bare_lines.iter().any(|line| {
+        !line.is_empty()
+            && !line.starts_with('|')
+            && line.contains('+')
+            && line.contains('-')
+            && line.chars().all(|c| matches!(c, '-' | '+' | ' '))
+    });
+    if has_psql_sep {
+        return OutputFormat::Psql;
+    }
+
+    OutputFormat::Github
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -298,6 +400,105 @@ mod tests {
     fn parse_rst_insufficient_separators_returns_error() {
         let input = lines("=====\nitem\n");
         assert!(parse_rst_table(&input).is_err());
+    }
+
+    // ── detect_style ────────────────────────────────────────────────────────
+
+    fn detect(s: &str) -> OutputFormat {
+        let v: Vec<&str> = s.lines().collect();
+        detect_style(&v)
+    }
+
+    #[test]
+    fn detect_github_fallback() {
+        assert!(matches!(
+            detect("| a | b |\n|---|---|\n| 1 | 2 |"),
+            OutputFormat::Github
+        ));
+    }
+
+    #[test]
+    fn detect_psql_by_plus_separator_no_leading_pipe() {
+        assert!(matches!(detect(" a | b \n---+---\n 1 | 2 "), OutputFormat::Psql));
+    }
+
+    #[test]
+    fn detect_orgtbl_by_plus_inside_pipe_bordered_separator() {
+        assert!(matches!(
+            detect("| a | b |\n|---+---|\n| 1 | 2 |"),
+            OutputFormat::Orgtbl
+        ));
+    }
+
+    #[test]
+    fn detect_jira_by_double_pipe_header() {
+        assert!(matches!(detect("|| a || b ||\n| 1 | 2 |"), OutputFormat::Jira));
+    }
+
+    #[test]
+    fn detect_rst_by_equals_only_separator() {
+        assert!(matches!(
+            detect("===  ===\na    b\n===  ===\n1    2\n===  ==="),
+            OutputFormat::Rst
+        ));
+    }
+
+    #[test]
+    fn detect_asciidoc_by_pipe_equals_delimiter() {
+        assert!(matches!(
+            detect("|====\n| a | b\n| 1 | 2\n|===="),
+            OutputFormat::Asciidoc
+        ));
+    }
+
+    #[test]
+    fn detect_asciidoc_by_cols_attribute() {
+        assert!(matches!(
+            detect("[cols=\"<4,>3\"]\n|====\n| a | b\n|===="),
+            OutputFormat::Asciidoc
+        ));
+    }
+
+    #[test]
+    fn detect_extended_by_double_vertical() {
+        assert!(matches!(detect("║ a ║ b ║\n║ 1 ║ 2 ║"), OutputFormat::Extended));
+    }
+
+    #[test]
+    fn detect_heavy_outline_by_heavy_horizontal() {
+        assert!(matches!(
+            detect("┃ a ┃ b ┃\n━━━━━━━━━\n┃ 1 ┃ 2 ┃"),
+            OutputFormat::HeavyOutline
+        ));
+    }
+
+    #[test]
+    fn detect_dots_by_middle_dot() {
+        assert!(matches!(detect("· a · b ·\n· 1 · 2 ·"), OutputFormat::Dots));
+    }
+
+    #[test]
+    fn detect_modern_by_double_single_corners() {
+        assert!(matches!(
+            detect("╒═══╤═══╕\n│ a │ b │\n╞═══╪═══╡\n│ 1 │ 2 │\n╘═══╧═══╛"),
+            OutputFormat::Modern
+        ));
+    }
+
+    #[test]
+    fn detect_sharp_by_box_drawing_without_modern_corners() {
+        assert!(matches!(
+            detect("┌───┬───┐\n│ a │ b │\n├───┼───┤\n│ 1 │ 2 │\n└───┴───┘"),
+            OutputFormat::Sharp
+        ));
+    }
+
+    #[test]
+    fn detect_ascii_by_plus_border() {
+        assert!(matches!(
+            detect("+---+---+\n| a | b |\n+===+===+\n| 1 | 2 |\n+---+---+"),
+            OutputFormat::Ascii
+        ));
     }
 
     // ── AsciiDoc parser ──────────────────────────────────────────────────────

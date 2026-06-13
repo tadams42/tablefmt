@@ -1,6 +1,7 @@
 mod cli;
 mod color;
 mod format;
+mod locate;
 mod model;
 mod numeric;
 mod parse;
@@ -112,6 +113,74 @@ fn run_format(args: &cli::FormatArgs) -> anyhow::Result<()> {
 }
 
 fn run_prettify(args: &cli::PrettifyArgs) -> anyhow::Result<()> {
+    if args.line.is_none() && args.style.is_none() {
+        return Err(anyhow!("--style is required when --line is not given"));
+    }
+
+    // ── Path B: locate table by line number inside a file ───────────────────
+    if let Some(line_num) = args.line {
+        let path = args
+            .input
+            .as_ref()
+            .ok_or_else(|| anyhow!("--input must be a file path when --line is given"))?;
+
+        let file_content = fs::read_to_string(path)
+            .with_context(|| format!("failed to read '{}'", path.display()))?;
+
+        let file_lines: Vec<&str> = file_content.lines().collect();
+
+        let (start, end) = locate::find_table_bounds(&file_lines, line_num)
+            .with_context(|| format!("cannot locate table at line {line_num}"))?;
+
+        let table_str = file_lines[start..=end].join("\n");
+        let (bare_lines, meta) = prettify::preprocess(&table_str);
+        let line_refs: Vec<&str> = bare_lines.iter().map(String::as_str).collect();
+
+        let style = args
+            .style
+            .clone()
+            .unwrap_or_else(|| table_parse::detect_style(&line_refs));
+
+        let mut data = table_parse::parse_table(&line_refs, &style)
+            .context("failed to parse table for prettify")?;
+
+        numeric::populate_column_meta(&mut data);
+        if let Some(places) = args.decimal_places {
+            numeric::normalize_decimal_places(&mut data, places);
+        }
+
+        let rendered = format::render(&data, &style, &cli::ColorMode::None, false);
+        let rendered = if rendered.ends_with('\n') {
+            rendered
+        } else {
+            rendered + "\n"
+        };
+        let reformatted = prettify::postprocess(&rendered, &meta);
+
+        // Splice reformatted table back into the file
+        let new_table_lines: Vec<&str> = reformatted.trim_end_matches('\n').lines().collect();
+        let mut result_lines: Vec<&str> = Vec::with_capacity(file_lines.len());
+        result_lines.extend_from_slice(&file_lines[..start]);
+        result_lines.extend_from_slice(&new_table_lines);
+        if end + 1 < file_lines.len() {
+            result_lines.extend_from_slice(&file_lines[end + 1..]);
+        }
+
+        let mut result = result_lines.join("\n");
+        if file_content.ends_with('\n') {
+            result.push('\n');
+        }
+
+        let out_path = args.output.as_deref().unwrap_or(path.as_path());
+        fs::write(out_path, result.as_bytes())
+            .with_context(|| format!("failed to write '{}'", out_path.display()))?;
+
+        return Ok(());
+    }
+
+    // ── Path A: existing behaviour — pipe the entire table ───────────────────
+    let style = args.style.as_ref().unwrap(); // validated above
+
     let input_bytes: Vec<u8> = match &args.input {
         Some(path) => {
             fs::read(path).with_context(|| format!("failed to read '{}'", path.display()))?
@@ -131,7 +200,7 @@ fn run_prettify(args: &cli::PrettifyArgs) -> anyhow::Result<()> {
     let (bare_lines, meta) = prettify::preprocess(input_str);
     let line_refs: Vec<&str> = bare_lines.iter().map(String::as_str).collect();
 
-    let mut data = table_parse::parse_table(&line_refs, &args.style)
+    let mut data = table_parse::parse_table(&line_refs, style)
         .context("failed to parse table for prettify")?;
 
     numeric::populate_column_meta(&mut data);
@@ -144,7 +213,7 @@ fn run_prettify(args: &cli::PrettifyArgs) -> anyhow::Result<()> {
         Some(_) => false,
     };
 
-    let rendered = format::render(&data, &args.style, &cli::ColorMode::None, is_tty);
+    let rendered = format::render(&data, style, &cli::ColorMode::None, is_tty);
     let rendered = if rendered.ends_with('\n') {
         rendered
     } else {
