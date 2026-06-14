@@ -22,6 +22,17 @@ impl TableData {
     }
 
     pub fn truncate_rows(&mut self, max_rows: usize) { self.rows.truncate(max_rows); }
+
+    pub fn trim_values(&mut self) {
+        for h in &mut self.headers {
+            *h = h.trim().to_string();
+        }
+        for row in &mut self.rows {
+            for cell in row {
+                *cell = cell.trim().to_string();
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -47,5 +58,16 @@ mod tests {
         let mut data = TableData::new(vec!["a".to_string()], vec![vec!["1".to_string()]]);
         data.truncate_rows(10);
         assert_eq!(data.rows.len(), 1);
+    }
+
+    #[test]
+    fn trim_values_removes_surrounding_whitespace() {
+        let mut data = TableData::new(
+            vec![" col1 ".to_string(), "\tcol2\t".to_string()],
+            vec![vec![" val1 ".to_string(), "  val2  ".to_string()]],
+        );
+        data.trim_values();
+        assert_eq!(data.headers, ["col1", "col2"]);
+        assert_eq!(data.rows[0], ["val1", "val2"]);
     }
 }

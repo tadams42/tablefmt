@@ -1,5 +1,7 @@
 ## unreleased
 
+- fix: stripped framing delimiters and whitespace from delimited input
+
 ## v0.3.0 (2026-06-13)
 
 - feat: added edit subcommand as VS Code API, removed prettify

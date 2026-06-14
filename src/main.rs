@@ -87,6 +87,8 @@ fn run_format(args: &cli::FormatArgs) -> anyhow::Result<()> {
         }
     };
 
+    data.trim_values();
+
     if let MaxRows::Limit(n) = args.max_rows {
         data.truncate_rows(n);
     }

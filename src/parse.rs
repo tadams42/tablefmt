@@ -5,10 +5,14 @@ use anyhow::{Context, anyhow};
 
 use crate::model::TableData;
 
-pub fn parse_csv<R: Read>(reader: R, delimiter: u8) -> anyhow::Result<TableData> {
+pub fn parse_csv<R: Read>(mut reader: R, delimiter: u8) -> anyhow::Result<TableData> {
+    let mut raw = Vec::new();
+    reader.read_to_end(&mut raw).context("failed to read input")?;
+    let processed = strip_framing_delimiters(&raw, delimiter);
+
     let mut rdr = csv::ReaderBuilder::new()
         .delimiter(delimiter)
-        .from_reader(reader);
+        .from_reader(processed.as_slice());
 
     let headers: Vec<String> = rdr
         .headers()
@@ -26,6 +30,33 @@ pub fn parse_csv<R: Read>(reader: R, delimiter: u8) -> anyhow::Result<TableData>
         .collect::<anyhow::Result<_>>()?;
 
     Ok(TableData::new(headers, rows))
+}
+
+// Strips leading/trailing delimiter chars from each line so that framed rows like
+// `| a | b |` parse identically to unframed `a | b`.
+fn strip_framing_delimiters(raw: &[u8], delimiter: u8) -> Vec<u8> {
+    let mut out = Vec::with_capacity(raw.len());
+    for line in raw.split(|&b| b == b'\n') {
+        let line = line.strip_suffix(b"\r" as &[u8]).unwrap_or(line);
+        let line = trim_bytes(line);
+        let line = match line.split_first() {
+            Some((&b, rest)) if b == delimiter => rest,
+            _ => line,
+        };
+        let line = match line.split_last() {
+            Some((&b, rest)) if b == delimiter => rest,
+            _ => line,
+        };
+        out.extend_from_slice(line);
+        out.push(b'\n');
+    }
+    out
+}
+
+fn trim_bytes(s: &[u8]) -> &[u8] {
+    let start = s.iter().position(|b| !b.is_ascii_whitespace()).unwrap_or(s.len());
+    let end = s.iter().rposition(|b| !b.is_ascii_whitespace()).map_or(0, |i| i + 1);
+    if start >= end { &[] } else { &s[start..end] }
 }
 
 pub fn parse_json(input: &str) -> anyhow::Result<TableData> {
@@ -274,6 +305,20 @@ mod tests {
     fn parse_psv_pipe_delimiter() {
         let data = parse_csv("item|qty\nspam|42".as_bytes(), b'|').unwrap();
         assert_eq!(data.headers, ["item", "qty"]);
+    }
+
+    #[test]
+    fn parse_psv_framed_rows_strips_outer_pipes() {
+        let data = parse_csv("| item | qty |\n| spam | 42 |".as_bytes(), b'|').unwrap();
+        assert_eq!(data.headers, [" item ", " qty "]);
+        assert_eq!(data.rows[0], [" spam ", " 42 "]);
+    }
+
+    #[test]
+    fn parse_psv_framed_rows_no_extra_empty_columns() {
+        let data = parse_csv("| a | b |\n| 1 | 2 |".as_bytes(), b'|').unwrap();
+        assert_eq!(data.headers.len(), 2);
+        assert_eq!(data.rows[0].len(), 2);
     }
 
     #[test]
